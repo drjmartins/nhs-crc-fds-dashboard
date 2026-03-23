@@ -256,6 +256,11 @@ df_agg["month"] = pd.Categorical(df_agg["month"], categories=MONTH_ORDER, ordere
 # ── HEADER ────────────────────────────────────────────────────────────────────
 st.markdown(
     f"""
+    <div style="background:#fff3cd;color:#856404;padding:0.6rem 1rem;border-radius:6px;margin-bottom:1rem;font-size:0.82rem;">
+        <b>Debug:</b> DATA_DIR = <code>{DATA_DIR.resolve()}</code> &nbsp;|&nbsp;
+        xlsx files found: <b>{len(list(DATA_DIR.glob("*.xlsx")))}</b> &nbsp;|&nbsp;
+        Months loaded: <b>{len(MONTH_ORDER)}</b> ({DATE_RANGE})
+    </div>
     <div class="nhs-header">
       <div style="font-size:1.5rem;font-weight:700;">
         NHS England &nbsp;—&nbsp; 28-Day Faster Diagnosis Standard
