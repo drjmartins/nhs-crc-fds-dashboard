@@ -400,20 +400,31 @@ st.markdown(f"#### {org_label} Trend Over Time")
 
 all_orgs = sorted(df["org_name"].dropna().unique())
 
-# Pre-select a handful to keep the chart readable
-default_orgs = all_orgs[:5] if len(all_orgs) >= 5 else all_orgs
-
 selected_orgs = st.multiselect(
     f"Select {org_label.lower()}s to compare",
     options=all_orgs,
-    default=default_orgs,
+    default=[],
     help="Choose one or more organisations to plot their 28-day FDS % over time.",
 )
 
+fig_drill = go.Figure()
+
+# Always show the national trend
+fig_drill.add_trace(
+    go.Scatter(
+        x=nat["month"].astype(str),
+        y=nat["pct_28"],
+        mode="lines+markers",
+        name="National (England)",
+        line=dict(color=C_BLUE, width=3),
+        marker=dict(size=8, color=C_BLUE, line=dict(color="white", width=2)),
+        hovertemplate="<b>National (England)</b><br>%{x}: %{y:.1%}<extra></extra>",
+    )
+)
+
+# Add any selected organisations
 if selected_orgs:
     df_drill = df[df["org_name"].isin(selected_orgs)].copy()
-
-    fig_drill = go.Figure()
     for org in selected_orgs:
         org_data = df_drill[df_drill["org_name"] == org].sort_values("month")
         if org_data.empty:
@@ -427,27 +438,26 @@ if selected_orgs:
                 hovertemplate=f"<b>{org}</b><br>%{{x}}: %{{y:.1%}}<extra></extra>",
             )
         )
-    fig_drill.add_hline(
-        y=FDS_TARGET,
-        line_dash="dash",
-        line_color=C_RED,
-        line_width=2,
-        annotation_text="75% Target",
-        annotation_position="top left",
-        annotation_font_color=C_RED,
-    )
-    fig_drill.update_layout(
-        height=380,
-        plot_bgcolor="white",
-        paper_bgcolor="white",
-        margin=dict(l=10, r=20, t=10, b=10),
-        yaxis=dict(tickformat=".0%", range=[0, 1.05], gridcolor=C_LIGHT_GREY, title=None),
-        xaxis=dict(gridcolor=C_LIGHT_GREY, title=None),
-        legend=dict(orientation="h", y=-0.2, font=dict(size=10)),
-    )
-    st.plotly_chart(fig_drill, use_container_width=True)
-else:
-    st.info("Select at least one organisation above to display trends.")
+
+fig_drill.add_hline(
+    y=FDS_TARGET,
+    line_dash="dash",
+    line_color=C_RED,
+    line_width=2,
+    annotation_text="75% Target",
+    annotation_position="top left",
+    annotation_font_color=C_RED,
+)
+fig_drill.update_layout(
+    height=380,
+    plot_bgcolor="white",
+    paper_bgcolor="white",
+    margin=dict(l=10, r=20, t=10, b=10),
+    yaxis=dict(tickformat=".0%", range=[0, 1.05], gridcolor=C_LIGHT_GREY, title=None),
+    xaxis=dict(gridcolor=C_LIGHT_GREY, title=None),
+    legend=dict(orientation="h", y=-0.2, font=dict(size=10)),
+)
+st.plotly_chart(fig_drill, use_container_width=True)
 
 
 # ── WAITING TIME BREAKDOWN ─────────────────────────────────────────────────────
