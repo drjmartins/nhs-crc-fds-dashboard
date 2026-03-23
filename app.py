@@ -183,6 +183,26 @@ def load_data(fingerprint: str) -> pd.DataFrame:  # fingerprint busts cache when
     return df
 
 
+# ── LOAD DATA ─────────────────────────────────────────────────────────────────
+df_all = load_data(_data_fingerprint())
+
+if df_all.empty:
+    st.error(
+        "No data could be loaded. "
+        "Make sure the NHS Excel files are in the same folder as app.py."
+    )
+    st.stop()
+
+# Derive chronological month order from whatever files are present
+MONTH_ORDER = sorted(
+    df_all["month"].unique(),
+    key=lambda m: pd.to_datetime(m, format="%b-%y"),
+)
+df_all["month"] = pd.Categorical(df_all["month"], categories=MONTH_ORDER, ordered=True)
+df_all = df_all.sort_values("month").reset_index(drop=True)
+
+DATE_RANGE = f"{MONTH_ORDER[0]} – {MONTH_ORDER[-1]}"
+
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
@@ -218,27 +238,6 @@ with st.sidebar:
     if st.button("⟳  Reload data", help="Clear cache and reload all spreadsheets"):
         st.cache_data.clear()
         st.rerun()
-
-
-# ── LOAD DATA ─────────────────────────────────────────────────────────────────
-df_all = load_data(_data_fingerprint())
-
-if df_all.empty:
-    st.error(
-        "No data could be loaded. "
-        "Make sure the NHS Excel files are in the same folder as app.py."
-    )
-    st.stop()
-
-# Derive chronological month order from whatever files are present
-MONTH_ORDER = sorted(
-    df_all["month"].unique(),
-    key=lambda m: pd.to_datetime(m, format="%b-%y"),
-)
-df_all["month"] = pd.Categorical(df_all["month"], categories=MONTH_ORDER, ordered=True)
-df_all = df_all.sort_values("month").reset_index(drop=True)
-
-DATE_RANGE = f"{MONTH_ORDER[0]} – {MONTH_ORDER[-1]}"
 
 df = df_all[df_all["view_type"] == view].copy()   # raw: one row per org per route per month
 org_label = "Provider" if view == "Provider" else "ICB / Commissioning Hub"
