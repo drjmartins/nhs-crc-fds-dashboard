@@ -41,7 +41,7 @@ MONTH_ORDER = [
 st.markdown(f"""
 <style>
   /* Page padding */
-  .block-container {{ padding-top: 1rem; padding-bottom: 2rem; }}
+  .block-container {{ padding-top: 2.5rem; padding-bottom: 2rem; }}
 
   /* KPI cards */
   .kpi-card {{
