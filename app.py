@@ -553,8 +553,8 @@ fig_bd.update_layout(
     height=420,
     plot_bgcolor="white",
     paper_bgcolor="white",
-    margin=dict(l=10, r=10, t=10, b=140),
-    xaxis=dict(tickangle=-50, tickfont=dict(size=9), title=None),
+    margin=dict(l=10, r=10, t=10, b=10),
+    xaxis=dict(showticklabels=False, title=None),
     yaxis=dict(title="Patients", gridcolor=C_LIGHT_GREY),
     legend=dict(
         orientation="h",
