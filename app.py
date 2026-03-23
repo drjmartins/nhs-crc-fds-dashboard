@@ -30,12 +30,7 @@ C_LIGHT_GREY = "#E8EDEE"
 
 FDS_TARGET   = 0.75
 
-MONTH_ORDER = [
-    "Oct-24", "Nov-24", "Dec-24",
-    "Jan-25", "Feb-25", "Mar-25",
-    "Apr-25", "May-25", "Jun-25",
-    "Jul-25", "Aug-25", "Sep-25",
-]
+# MONTH_ORDER is derived dynamically from loaded data — see below
 
 # ── CUSTOM CSS ────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -176,8 +171,9 @@ def load_data() -> pd.DataFrame:
     if df.empty:
         return df
 
-    df["month"] = pd.Categorical(df["month"], categories=MONTH_ORDER, ordered=True)
-    return df.sort_values("month").reset_index(drop=True)
+    df["_sort"] = pd.to_datetime(df["month"], format="%b-%y")
+    df = df.sort_values("_sort").drop(columns=["_sort"]).reset_index(drop=True)
+    return df
 
 
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
@@ -206,7 +202,7 @@ with st.sidebar:
         "<div style='font-size:0.8rem;opacity:0.85;line-height:1.6;'>"
         "<b>Cancer type:</b> Colorectal (Lower GI)<br>"
         "<b>Data:</b> NHS England CWT<br>"
-        "<b>Period:</b> Oct 2024 – Sep 2025<br>"
+        f"<b>Period:</b> {DATE_RANGE}<br>"
         "<b>Target:</b> ≥ 75% within 28 days"
         "</div>",
         unsafe_allow_html=True,
@@ -222,6 +218,16 @@ if df_all.empty:
         "Make sure the NHS Excel files are in the same folder as app.py."
     )
     st.stop()
+
+# Derive chronological month order from whatever files are present
+MONTH_ORDER = sorted(
+    df_all["month"].unique(),
+    key=lambda m: pd.to_datetime(m, format="%b-%y"),
+)
+df_all["month"] = pd.Categorical(df_all["month"], categories=MONTH_ORDER, ordered=True)
+df_all = df_all.sort_values("month").reset_index(drop=True)
+
+DATE_RANGE = f"{MONTH_ORDER[0]} – {MONTH_ORDER[-1]}"
 
 df = df_all[df_all["view_type"] == view].copy()   # raw: one row per org per route per month
 org_label = "Provider" if view == "Provider" else "ICB / Commissioning Hub"
@@ -245,7 +251,7 @@ st.markdown(
       </div>
       <div style="opacity:0.85;margin-top:0.3rem;">
         Colorectal Cancer (Suspected Lower Gastrointestinal) &nbsp;·&nbsp;
-        {view} View &nbsp;·&nbsp; Oct 2024 – Sep 2025
+        {view} View &nbsp;·&nbsp; {DATE_RANGE}
       </div>
     </div>
     """,
