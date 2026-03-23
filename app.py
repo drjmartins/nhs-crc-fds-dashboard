@@ -257,6 +257,19 @@ nat = (
 )
 nat["pct_28"] = nat["within_28"] / nat["total"]
 
+# National aggregates split by referral route — used across multiple sections
+nat_by_route = (
+    df.groupby(["month", "referral_route"], observed=True)
+    .agg(total=("total", "sum"), within_28=("within_28", "sum"))
+    .reset_index()
+)
+nat_by_route["pct_28"] = nat_by_route["within_28"] / nat_by_route["total"]
+nat_by_route["month"] = pd.Categorical(nat_by_route["month"], categories=MONTH_ORDER, ordered=True)
+nat_by_route = nat_by_route.sort_values("month")
+
+nat_usc = nat_by_route[nat_by_route["referral_route"] == "URGENT SUSPECTED CANCER"]
+nat_nsp = nat_by_route[nat_by_route["referral_route"] == "NATIONAL SCREENING PROGRAMME"]
+
 latest_month = nat["month"].max()
 latest_row   = nat[nat["month"] == latest_month].iloc[0]
 
@@ -322,70 +335,62 @@ with left:
     st.markdown(f"#### National Trend — CRC 28-Day FDS % ({view}-based)")
 
     fig_trend = go.Figure()
-    fig_trend.add_trace(
-        go.Scatter(
-            x=nat["month"].astype(str),
-            y=nat["pct_28"],
-            mode="lines+markers",
-            name="28-Day FDS %",
-            line=dict(color=C_BLUE, width=3),
-            marker=dict(size=9, color=C_BLUE, line=dict(color="white", width=2)),
-            hovertemplate="<b>%{x}</b><br>%{y:.1%} within 28 days<extra></extra>",
-        )
-    )
+    fig_trend.add_trace(go.Scatter(
+        x=nat["month"].astype(str), y=nat["pct_28"],
+        mode="lines+markers", name="Combined",
+        line=dict(color=C_BLUE, width=3),
+        marker=dict(size=9, color=C_BLUE, line=dict(color="white", width=2)),
+        hovertemplate="<b>%{x}</b> Combined<br>%{y:.1%}<extra></extra>",
+    ))
+    fig_trend.add_trace(go.Scatter(
+        x=nat_usc["month"].astype(str), y=nat_usc["pct_28"],
+        mode="lines+markers", name="Urgent Suspected Cancer",
+        line=dict(color=C_DARK_BLUE, width=2, dash="dash"),
+        marker=dict(size=7, color=C_DARK_BLUE),
+        hovertemplate="<b>%{x}</b> Urgent Suspected Cancer<br>%{y:.1%}<extra></extra>",
+    ))
+    fig_trend.add_trace(go.Scatter(
+        x=nat_nsp["month"].astype(str), y=nat_nsp["pct_28"],
+        mode="lines+markers", name="National Screening Programme",
+        line=dict(color=C_LIGHT_BLUE, width=2, dash="dot"),
+        marker=dict(size=7, color=C_LIGHT_BLUE),
+        hovertemplate="<b>%{x}</b> National Screening Programme<br>%{y:.1%}<extra></extra>",
+    ))
     fig_trend.add_hline(
-        y=FDS_TARGET,
-        line_dash="dash",
-        line_color=C_RED,
-        line_width=2,
-        annotation_text="75% Target",
-        annotation_position="top left",
-        annotation_font_color=C_RED,
-        annotation_font_size=12,
+        y=FDS_TARGET, line_dash="dash", line_color=C_RED, line_width=2,
+        annotation_text="75% Target", annotation_position="top left",
+        annotation_font_color=C_RED, annotation_font_size=12,
     )
     fig_trend.update_layout(
-        height=300,
-        plot_bgcolor="white",
-        paper_bgcolor="white",
+        height=320,
+        plot_bgcolor="white", paper_bgcolor="white",
         margin=dict(l=10, r=20, t=10, b=10),
-        yaxis=dict(
-            tickformat=".0%",
-            range=[0.4, 1.0],
-            gridcolor=C_LIGHT_GREY,
-            title=None,
-        ),
+        yaxis=dict(tickformat=".0%", range=[0.4, 1.0], gridcolor=C_LIGHT_GREY, title=None),
         xaxis=dict(gridcolor=C_LIGHT_GREY, title=None),
-        showlegend=False,
+        legend=dict(orientation="h", y=-0.25, font=dict(size=11)),
     )
     st.plotly_chart(fig_trend, use_container_width=True)
 
 with right:
-    st.markdown("#### Monthly Patient Volume")
+    st.markdown("#### Monthly Patient Volume by Route")
 
     fig_vol = go.Figure()
-    fig_vol.add_trace(
-        go.Bar(
-            x=nat["month"].astype(str),
-            y=nat["total"],
-            name="Total referrals",
-            marker_color=C_LIGHT_GREY,
-            hovertemplate="<b>%{x}</b><br>Total: %{y:,}<extra></extra>",
-        )
-    )
-    fig_vol.add_trace(
-        go.Bar(
-            x=nat["month"].astype(str),
-            y=nat["within_28"],
-            name="Within 28 days",
-            marker_color=C_BLUE,
-            hovertemplate="<b>%{x}</b><br>Within 28 days: %{y:,}<extra></extra>",
-        )
-    )
+    fig_vol.add_trace(go.Bar(
+        x=nat_usc["month"].astype(str), y=nat_usc["total"],
+        name="Urgent Suspected Cancer",
+        marker_color=C_DARK_BLUE,
+        hovertemplate="<b>%{x}</b> Urgent Suspected Cancer<br>%{y:,} patients<extra></extra>",
+    ))
+    fig_vol.add_trace(go.Bar(
+        x=nat_nsp["month"].astype(str), y=nat_nsp["total"],
+        name="National Screening Programme",
+        marker_color=C_LIGHT_BLUE,
+        hovertemplate="<b>%{x}</b> National Screening Programme<br>%{y:,} patients<extra></extra>",
+    ))
     fig_vol.update_layout(
-        height=300,
-        barmode="overlay",
-        plot_bgcolor="white",
-        paper_bgcolor="white",
+        height=320,
+        barmode="stack",
+        plot_bgcolor="white", paper_bgcolor="white",
         margin=dict(l=10, r=10, t=10, b=10),
         yaxis=dict(gridcolor=C_LIGHT_GREY, title=None),
         xaxis=dict(title=None),
@@ -406,16 +411,6 @@ ROUTE_STYLES = {
     "Urgent Suspected Cancer":      {"raw": "URGENT SUSPECTED CANCER",      "dash": "dash"},
     "National Screening Programme": {"raw": "NATIONAL SCREENING PROGRAMME", "dash": "dot"},
 }
-
-# National aggregates by route (for route-level national lines)
-nat_by_route = (
-    df.groupby(["month", "referral_route"], observed=True)
-    .agg(total=("total", "sum"), within_28=("within_28", "sum"))
-    .reset_index()
-)
-nat_by_route["pct_28"] = nat_by_route["within_28"] / nat_by_route["total"]
-nat_by_route["month"] = pd.Categorical(nat_by_route["month"], categories=MONTH_ORDER, ordered=True)
-nat_by_route = nat_by_route.sort_values("month")
 
 col_orgs, col_routes = st.columns([3, 1])
 with col_orgs:
@@ -576,24 +571,41 @@ left_org, right_org = st.columns(2)
 with left_org:
     st.markdown("**12-Month Trend vs National**")
 
+    df_org_usc = df[(df["org_name"] == selected_org) & (df["referral_route"] == "URGENT SUSPECTED CANCER")].sort_values("month")
+    df_org_nsp = df[(df["org_name"] == selected_org) & (df["referral_route"] == "NATIONAL SCREENING PROGRAMME")].sort_values("month")
+
     fig_org_trend = go.Figure()
+    # Org lines
     fig_org_trend.add_trace(go.Scatter(
-        x=df_org_all["month"].astype(str),
-        y=df_org_all["pct_28"],
-        mode="lines+markers",
-        name=selected_org,
+        x=df_org_all["month"].astype(str), y=df_org_all["pct_28"],
+        mode="lines+markers", name="Combined",
         line=dict(color=C_BLUE, width=2),
         marker=dict(size=7, color=C_BLUE),
-        hovertemplate="%{x}: %{y:.1%}<extra>" + selected_org + "</extra>",
+        hovertemplate="%{x} Combined: %{y:.1%}<extra></extra>",
     ))
+    if not df_org_usc.empty:
+        fig_org_trend.add_trace(go.Scatter(
+            x=df_org_usc["month"].astype(str), y=df_org_usc["pct_28"],
+            mode="lines+markers", name="Urgent Suspected Cancer",
+            line=dict(color=C_DARK_BLUE, width=2, dash="dash"),
+            marker=dict(size=6, color=C_DARK_BLUE),
+            hovertemplate="%{x} Urgent Suspected Cancer: %{y:.1%}<extra></extra>",
+        ))
+    if not df_org_nsp.empty:
+        fig_org_trend.add_trace(go.Scatter(
+            x=df_org_nsp["month"].astype(str), y=df_org_nsp["pct_28"],
+            mode="lines+markers", name="National Screening Programme",
+            line=dict(color=C_LIGHT_BLUE, width=2, dash="dot"),
+            marker=dict(size=6, color=C_LIGHT_BLUE),
+            hovertemplate="%{x} National Screening Programme: %{y:.1%}<extra></extra>",
+        ))
+    # National benchmark (combined only, for reference)
     fig_org_trend.add_trace(go.Scatter(
-        x=nat["month"].astype(str),
-        y=nat["pct_28"],
-        mode="lines+markers",
-        name="National (England)",
+        x=nat["month"].astype(str), y=nat["pct_28"],
+        mode="lines+markers", name="National (England)",
         line=dict(color=C_GREY, width=2, dash="dash"),
         marker=dict(size=6, color=C_GREY),
-        hovertemplate="%{x}: %{y:.1%}<extra>National</extra>",
+        hovertemplate="%{x} National: %{y:.1%}<extra></extra>",
     ))
     fig_org_trend.add_hline(
         y=FDS_TARGET, line_dash="dash", line_color=C_RED, line_width=1.5,
@@ -649,18 +661,25 @@ with right_org:
 # ── Month-by-month detail table ───────────────────────────────────────────────
 st.markdown(f"**Month-by-month detail — {selected_org}**")
 
-detail = df_org_all[
-    ["month", "total", "within_28", "after_28", "pct_28",
-     "w14", "d15_28", "d29_42", "d43_62", "d63plus"]
-].copy()
-detail.columns = [
-    "Month", "Total", "Within 28d", "After 28d", "% within 28d",
-    "≤14d", "15–28d", "29–42d", "43–62d", ">62d",
-]
-detail["% within 28d"] = detail["% within 28d"].apply(
-    lambda x: f"{x:.1%}" if pd.notna(x) else "—"
-)
-detail["Month"] = detail["Month"].astype(str)
+_detail_cols = ["month", "total", "within_28", "after_28", "pct_28",
+                "w14", "d15_28", "d29_42", "d43_62", "d63plus"]
+_col_names   = ["Month", "Total", "Within 28d", "After 28d", "% within 28d",
+                "≤14d", "15–28d", "29–42d", "43–62d", ">62d"]
+
+def _fmt(df_in, route_label):
+    d = df_in[_detail_cols].copy()
+    d.columns = _col_names
+    d.insert(1, "Route", route_label)
+    d["% within 28d"] = d["% within 28d"].apply(lambda x: f"{x:.1%}" if pd.notna(x) else "—")
+    d["Month"] = d["Month"].astype(str)
+    return d
+
+detail = pd.concat([
+    _fmt(df_org_all, "Combined"),
+    _fmt(df_org_usc,  "Urgent Suspected Cancer"),
+    _fmt(df_org_nsp,  "National Screening Programme"),
+], ignore_index=True)
+detail = detail.sort_values(["Month", "Route"]).reset_index(drop=True)
 
 def highlight_below_target(row):
     try:
