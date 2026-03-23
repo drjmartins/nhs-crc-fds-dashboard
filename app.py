@@ -101,7 +101,7 @@ DATA_DIR = Path(__file__).parent / "NHS data"
 
 
 @st.cache_data(show_spinner="Loading NHS Cancer Waiting Times data…")
-def load_data() -> pd.DataFrame:
+def load_data(file_count: int) -> pd.DataFrame:  # file_count busts cache when files are added
     """Parse all Excel workbooks and return a combined CRC FDS dataframe."""
     records = []
 
@@ -210,7 +210,7 @@ with st.sidebar:
 
 
 # ── LOAD DATA ─────────────────────────────────────────────────────────────────
-df_all = load_data()
+df_all = load_data(len(list(DATA_DIR.glob("*.xlsx"))))
 
 if df_all.empty:
     st.error(
