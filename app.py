@@ -570,7 +570,7 @@ else:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Trend + waiting time breakdown side by side ───────────────────────────────
-left_org, right_org = st.columns(2)
+left_org, right_org = st.columns([3, 2])
 
 with left_org:
     st.markdown("**12-Month Trend vs National**")
