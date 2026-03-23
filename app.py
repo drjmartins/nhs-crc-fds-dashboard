@@ -100,8 +100,15 @@ st.markdown(f"""
 DATA_DIR = Path(__file__).parent / "NHS data"
 
 
+def _data_fingerprint() -> str:
+    """Hash of all xlsx filenames — changes whenever files are added or removed."""
+    import hashlib
+    names = sorted(fp.name for fp in DATA_DIR.glob("*.xlsx"))
+    return hashlib.md5("\n".join(names).encode()).hexdigest()
+
+
 @st.cache_data(show_spinner="Loading NHS Cancer Waiting Times data…")
-def load_data(file_count: int) -> pd.DataFrame:  # file_count busts cache when files are added
+def load_data(fingerprint: str) -> pd.DataFrame:  # fingerprint busts cache when files change
     """Parse all Excel workbooks and return a combined CRC FDS dataframe."""
     records = []
 
@@ -207,10 +214,14 @@ with st.sidebar:
         "</div>",
         unsafe_allow_html=True,
     )
+    st.divider()
+    if st.button("⟳  Reload data", help="Clear cache and reload all spreadsheets"):
+        st.cache_data.clear()
+        st.rerun()
 
 
 # ── LOAD DATA ─────────────────────────────────────────────────────────────────
-df_all = load_data(len(list(DATA_DIR.glob("*.xlsx"))))
+df_all = load_data(_data_fingerprint())
 
 if df_all.empty:
     st.error(
