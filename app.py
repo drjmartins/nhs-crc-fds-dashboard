@@ -405,6 +405,63 @@ with right:
 
 
 
+# ── PERFORMANCE DISTRIBUTION HISTOGRAM ───────────────────────────────────────
+st.divider()
+st.markdown(f"#### Performance Distribution Across {org_label}s")
+
+hist_col, hist_ctrl = st.columns([5, 1])
+with hist_ctrl:
+    hist_month_options = [m for m in MONTH_ORDER if m in df_agg["month"].astype(str).values]
+    hist_month = st.select_slider(
+        "Month",
+        options=hist_month_options,
+        value=hist_month_options[-1],
+        key="hist_month_slider",
+    )
+
+df_hist = (
+    df_agg[df_agg["month"].astype(str) == hist_month]
+    .dropna(subset=["pct_28"])
+    .query("total > 0")
+)
+
+with hist_col:
+    fig_hist = go.Figure()
+    fig_hist.add_trace(go.Histogram(
+        x=df_hist["pct_28"],
+        xbins=dict(start=0, end=1, size=0.05),
+        marker_color=C_BLUE,
+        marker_line=dict(color="white", width=1),
+        hovertemplate="% within 28 days: %{x:.0%}–%{x:.0%}<br>Organisations: %{y}<extra></extra>",
+    ))
+    fig_hist.add_vline(
+        x=FDS_TARGET,
+        line_dash="dash",
+        line_color=C_RED,
+        line_width=2,
+        annotation_text="Target 75%",
+        annotation_position="top right",
+        annotation_font_color=C_RED,
+    )
+    fig_hist.update_layout(
+        height=360,
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(
+            tickformat=".0%",
+            range=[0, 1],
+            title="% within 28 days",
+            gridcolor=C_LIGHT_GREY,
+        ),
+        yaxis=dict(
+            title="Number of organisations",
+            gridcolor=C_LIGHT_GREY,
+        ),
+        bargap=0.05,
+    )
+    st.plotly_chart(fig_hist, use_container_width=True)
+
 # ── PROVIDER TREND DRILL-DOWN ─────────────────────────────────────────────────
 st.divider()
 st.markdown(f"#### {org_label} Trend Over Time")
