@@ -669,10 +669,10 @@ else:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Trend + waiting time breakdown side by side ───────────────────────────────
-left_org, right_org = st.columns([3, 2])
+left_org, right_org = st.columns([4, 2])
 
 with left_org:
-    st.markdown("**12-Month Trend vs National**")
+    st.markdown("**Time Trend vs National**")
 
     df_org_usc = df[(df["org_name"] == selected_org) & (df["referral_route"] == "URGENT SUSPECTED CANCER")].sort_values("month")
     df_org_nsp = df[(df["org_name"] == selected_org) & (df["referral_route"] == "NATIONAL SCREENING PROGRAMME")].sort_values("month")
