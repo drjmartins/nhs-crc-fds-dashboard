@@ -172,6 +172,16 @@ def load_data() -> pd.DataFrame:
     if df.empty:
         return df
 
+    # Aggregate across referral routes (Urgent Suspected Cancer + National Screening Programme)
+    # so each organisation has one row per month
+    count_cols = ["total", "within_28", "after_28", "w14", "d15_28", "d29_42", "d43_62", "d63plus"]
+    df = (
+        df.groupby(["month", "view_type", "ods_code", "org_name"], observed=True)[count_cols]
+        .sum()
+        .reset_index()
+    )
+    df["pct_28"] = df["within_28"] / df["total"]
+
     df["month"] = pd.Categorical(df["month"], categories=MONTH_ORDER, ordered=True)
     return df.sort_values("month").reset_index(drop=True)
 
