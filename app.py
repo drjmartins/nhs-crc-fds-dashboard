@@ -384,17 +384,7 @@ with right:
     st.plotly_chart(fig_vol, use_container_width=True)
 
 
-# ── MONTH SELECTOR (used by breakdown + data table) ───────────────────────────
-st.divider()
-
-month_options = [m for m in MONTH_ORDER if m in df["month"].astype(str).values]
-selected_month = st.select_slider(
-    "Select month",
-    options=month_options,
-    value=month_options[-1],
-    key="month_slider",
-)
-
+selected_month = str(latest_month)
 df_sel = (
     df[df["month"].astype(str) == selected_month]
     .dropna(subset=["pct_28", "total"])
